@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>منصة تعليم الكهرباء</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#f8fafc;
+      --card:rgba(255,255,255,0.82);
+      --ink:#0f172a;
+      --muted:#64748b;
+      --accent:#6366f1;
+      --success:#10b981;
+      --danger:#ef4444;
+      --warning:#f59e0b;
+      --shadow: 0 12px 30px rgba(15,23,42,0.08);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin:0; min-height:100%; }
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: radial-gradient(circle at top, rgba(99,102,241,0.10), transparent 28%), linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+      color: var(--ink);
+      padding: 18px 12px 118px;
+      scroll-behavior: smooth;
+    }
+
+    .glass {
+      background: var(--card);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border:1px solid rgba(255,255,255,0.65);
+    }
+
+    .lesson-card {
+      border-radius: 22px;
+      border: 1px solid rgba(148,163,184,0.14);
+      background: rgba(255,255,255,0.82);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      touch-action: manipulation;
+    }
+
+    .lesson-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 36px rgba(79,70,229,0.12);
+    }
+
+    .lesson-card.active {
+      border-color: rgba(99,102,241,0.28);
+      box-shadow: 0 22px 40px rgba(79,70,229,0.12);
+    }
+
+    .header-bar {
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 92px;
+      border-top-left-radius: 22px;
+      border-top-right-radius: 22px;
+    }
+
+    .open-lesson, .start-lesson-btn, .action-btn, .filter-btn, .mark-complete-btn, .quiz-option, .admin-btn, .json-btn {
+      touch-action: manipulation;
+      min-height: 44px;
+      min-width: 44px;
+      cursor:pointer;
+      transition: .2s ease;
+      font-family: 'Cairo', sans-serif;
+    }
+
+    .progress-ring {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      position: relative;
+      display: grid;
+      place-items: center;
+      background: conic-gradient(#6366f1 var(--progress), #e5e7eb 0deg);
+      box-shadow: inset 0 0 0 1px rgba(148,163,184,0.25);
+    }
+
+    .progress-ring::before {
+      content: "";
+      position: absolute;
+      inset: 6px;
+      border-radius: 50%;
+      background: white;
+    }
+
+    .progress-ring span {
+      position: relative;
+      z-index: 1;
+      font-size: 0.62rem;
+      font-weight: 800;
+      color: #334155;
+    }
+
+    .tag-badge {
+      display: inline-flex;
+      padding: 0.35rem 0.7rem;
+      border-radius: 9999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .bottom-actions {
+      position: fixed;
+      z-index: 70;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: calc(env(safe-area-inset-bottom) + 12px) 12px 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0.96));
+      border-top: 1px solid rgba(148,163,184,0.18);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display:flex;
+      gap:8px;
+      justify-content:center;
+    }
+
+    .bottom-actions button {
+      flex:1;
+      max-width:220px;
+      border-radius:12px;
+      min-height:48px;
+      font-weight:700;
+    }
+
+    #lesson-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      z-index: 80;
+      align-items: flex-end;
+      justify-content: center;
+      background: rgba(15,23,42,0.62);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      padding: env(safe-area-inset-top) 12px calc(env(safe-area-inset-bottom) + 8px);
+    }
+
+    #lesson-modal.show {
+      display: flex;
+    }
+
+    .sheet {
+      width: 100%;
+      max-width: 900px;
+      background: white;
+      border-radius: 18px 18px 12px 12px;
+      box-shadow: 0 -12px 40px rgba(2,6,23,0.18);
+      overflow: hidden;
+      transform: translateY(100%);
+      transition: transform 280ms cubic-bezier(.2,.9,.3,1);
+      max-height: 92vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #lesson-modal.show .sheet {
+      transform: translateY(0);
+    }
+
+    .sheet-body {
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .quiz-card {
+      background: linear-gradient(180deg, rgba(99,102,241,0.05), rgba(99,102,241,0.02));
+      border: 1px solid rgba(99,102,241,0.12);
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .quiz-option {
+      width: 100%;
+      background: white;
+      border: 1px solid rgba(148,163,184,0.2);
+      padding: 12px;
+      border-radius: 12px;
+      text-align: right;
+      color: #0f172a;
+      margin-top: 8px;
+      font-weight: 600;
+      font-family: 'Cairo', sans-serif;
+    }
+
+    .quiz-option.selected {
+      outline: 2px solid rgba(99,102,241,0.5);
+      background: rgba(99,102,241,0.06);
+    }
+
+    .quiz-option.correct {
+      background: rgba(16,185,129,0.12);
+      border-color: rgba(16,185,129,0.35);
+      color: #065f46;
+    }
+
+    .quiz-option.wrong {
+      background: rgba(239,68,68,0.08);
+      border-color: rgba(239,68,68,0.3);
+      color: #991b1b;
+    }
+
+    .filter-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-weight: 700;
+      color: #334155;
+      background: #e2e8f0;
+      white-space: nowrap;
+    }
+
+    .filter-btn.active {
+      background: linear-gradient(120deg, #4f46e5, #7c3aed);
+      color: white;
+      box-shadow: 0 10px 18px rgba(99,102,241,0.25);
+    }
+
+    .hidden { display: none !important; }
+
+    .admin-panel {
+      position: fixed;
+      inset: auto 12px 80px 12px;
+      z-index: 90;
+      background: rgba(255,255,255,0.96);
+      border: 1px solid rgba(148,163,184,0.2);
+      border-radius: 20px;
+      box-shadow: 0 20px 38px rgba(15,23,42,0.14);
+      max-height: 72vh;
+      overflow: auto;
+      display: none;
+      padding: 12px;
+    }
+
+    .admin-panel.open {
+      display: block;
+    }
+
+    .admin-input, .admin-textarea, .admin-select {
+      width: 100%;
+      border: 1px solid rgba(148,163,184,0.25);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-family: 'Cairo', sans-serif;
+      background: white;
+      color: #0f172a;
+      font-size: 14px;
+      resize: vertical;
+    }
+
+    @media (min-width: 640px) {
+      body { padding: 24px 18px 80px; }
+      .lesson-card { border-radius: 26px; }
+      .sheet { border-radius: 22px; transform: translateY(36px); }
+      #lesson-modal {
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .admin-panel {
+        inset: auto 16px 88px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="mb-5">
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <p class="text-xs text-slate-500">منصة تعليمية</p>
+        <h1 class="text-xl sm:text-2xl font-extrabold text-slate-800">أساسيات الكهرباء</h1>
+      </div>
+      <div class="rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 px-3 py-2 text-white text-xs sm:text-sm font-bold shadow-sm">
+        تعلم • تحديث فوري
+      </div>
+    </div>
+  </header>
+
+  <section class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+    <div class="glass rounded-2xl p-4 shadow-sm">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs text-slate-500">إجمالي الدروس</p>
+          <p id="total-lessons" class="mt-1 text-2xl font-extrabold text-slate-800">00</p>
+        </div>
+        <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 6.75A2.75 2.75 0 0 1 6.75 4h10.5A2.75 2.75 0 0 1 20 6.75v10.5A2.75 2.75 0 0 1 17.25 20H6.75A2.75 2.75 0 0 1 4 17.25V6.75Z" stroke="currentColor" stroke-width="1.8"/><path d="M8 8.5h8M8 12h8M8 15.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass rounded-2xl p-4 shadow-sm">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs text-slate-500">مكتمل</p>
+          <p id="completed-count" class="mt-1 text-2xl font-extrabold text-slate-800">00</p>
+        </div>
+        <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M7 12.5l3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass rounded-2xl p-4 shadow-sm">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs text-slate-500">نسبة التقدم</p>
+          <p id="progress-percent" class="mt-1 text-2xl font-extrabold text-slate-800">0%</p>
+        </div>
+        <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 18.5V9.5M12 18.5V5.5M19 18.5v-8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mb-5">
+    <div class="flex gap-2 overflow-x-auto pb-2">
+      <button class="filter-btn active" data-filter="all">الكل</button>
+      <button class="filter-btn" data-filter="basics">الأساسيات</button>
+      <button class="filter-btn" data-filter="practice">تطبيقات</button>
+      <button class="filter-btn" data-filter="safety">السلامة</button>
+    </div>
+  </section>
+
+  <main id="lesson-list" class="space-y-3"></main>
+
+  <section id="active-lesson-panel" class="glass rounded-[22px] p-4 mt-5 shadow-sm hidden"></section>
+
+  <div class="bottom-actions">
+    <button id="toggle-admin" class="action-btn bg-slate-800 text-white">إدارة المحتوى</button>
+    <button id="resume-btn" class="action-btn bg-white border border-slate-200 text-slate-700">استئناف</button>
+    <button id="quick-start" class="action-btn bg-indigo-600 text-white shadow-sm">ابدأ الآن</button>
+  </div>
+
+  <div id="admin-panel" class="admin-panel">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="text-lg font-extrabold text-slate-800">إدارة الدروس</h3>
+      <button id="close-admin" class="admin-btn px-3 py-2 rounded-lg bg-slate-100 text-slate-700">إغلاق</button>
+    </div>
+
+    <form id="lesson-form">
+      <input type="hidden" id="lesson-id" />
+      <div class="space-y-3">
+        <div>
+          <label class="text-sm font-bold text-slate-700">العنوان</label>
+          <input id="lesson-title" class="admin-input" type="text" placeholder="اسم الدرس" />
+        </div>
+
+        <div>
+          <label class="text-sm font-bold text-slate-700">المستوى</label>
+          <input id="lesson-level" class="admin-input" type="text" placeholder="مثال: متوسط" />
+        </div>
+
+        <div>
+          <label class="text-sm font-bold text-slate-700">المدة</label>
+          <input id="lesson-duration" class="admin-input" type="text" placeholder="مثال: 10 دقيقة" />
+        </div>
+
+        <div>
+          <label class="text-sm font-bold text-slate-700">الفئة</label>
+          <select id="lesson-category" class="admin-select">
+            <option value="basics">الأساسيات</option>
+            <option value="practice">تطبيقات</option>
+            <option value="safety">السلامة</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-sm font-bold text-slate-700">الوصف</label>
+          <textarea id="lesson-description" class="admin-textarea" rows="3" placeholder="اكتب وصف الدرس"></textarea>
+        </div>
+
+        <div>
+          <label class="text-sm font-bold text-slate-700">الأهداف (كل هدف في سطر جديد)</label>
+          <textarea id="lesson-goals" class="admin-textarea" rows="4" placeholder="هدف 1&#10;هدف 2"></textarea>
+        </div>
+
+        <div>
+          <label class="text-sm font-bold text-slate-700">المفاهيم (كل مفهوم في سطر جديد)</label>
+          <textarea id="lesson-keypoints" class="admin-textarea" rows="4" placeholder="مفهوم 1&#10;مفهوم 2"></textarea>
+        </div>
+
+        <div>
+          <label class="text-sm font-bold text-slate-700">التمارين (كل تمرين في سطر جديد)</label>
+          <textarea id="lesson-practice" class="admin-textarea" rows="4" placeholder="تمرين 1&#10;تمرين 2"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" id="save-lesson" class="admin-btn bg-indigo-600 text-white rounded-xl">حفظ الدرس</button>
+          <button type="button" id="new-lesson" class="admin-btn bg-slate-100 text-slate-700 rounded-xl">درس جديد</button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" id="export-json" class="json-btn bg-emerald-600 text-white rounded-xl">تصدير JSON</button>
+          <button type="button" id="refresh-remote" class="json-btn bg-amber-500 text-white rounded-xl">تحديث من الرابط</button>
+        </div>
+
+        <button type="button" id="delete-lesson" class="admin-btn bg-rose-500 text-white rounded-xl w-full">حذف الدرس</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="lesson-modal" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="sheet">
+      <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <p id="modal-level" class="text-xs text-slate-500">متوسط</p>
+          <h3 id="modal-title" class="text-lg font-bold text-slate-800 mt-1">عنوان الدرس</h3>
+        </div>
+        <button id="close-modal" aria-label="إغلاق" class="p-2 rounded-lg bg-slate-100 text-slate-600">✕</button>
+      </div>
+
+      <div class="sheet-body p-4">
+        <p id="modal-description" class="text-sm text-slate-700 leading-8"></p>
+
+        <div class="mt-4 grid gap-3">
+          <div class="bg-violet-50 rounded-xl p-3">
+            <h4 class="text-sm font-extrabold text-violet-800">الأهداف</h4>
+            <ul id="goal-list" class="list-disc pr-5 mt-2 text-sm text-slate-700 space-y-1"></ul>
+          </div>
+          <div class="bg-emerald-50 rounded-xl p-3">
+            <h4 class="text-sm font-extrabold text-emerald-800">المفاهيم</h4>
+            <ul id="key-list" class="list-disc pr-5 mt-2 text-sm text-slate-700 space-y-1"></ul>
+          </div>
+          <div class="bg-amber-50 rounded-xl p-3">
+            <h4 class="text-sm font-extrabold text-amber-800">تمارين</h4>
+            <ul id="practice-list" class="list-disc pr-5 mt-2 text-sm text-slate-700 space-y-1"></ul>
+          </div>
+        </div>
+
+        <div class="mt-4 quiz-card">
+          <div class="flex items-center justify-between gap-2">
+            <h4 class="font-extrabold text-slate-800">اختبار سريع</h4>
+            <span id="quiz-score-badge" class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">0/0</span>
+          </div>
+          <div id="quiz-box" class="mt-3"></div>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-100 flex gap-3">
+        <button id="mark-complete" class="mark-complete-btn flex-1 bg-emerald-600 text-white rounded-xl">تحديد كمنتهٍ</button>
+        <button id="start-lesson" class="start-lesson-btn flex-1 bg-indigo-600 text-white rounded-xl">بدء الدرس</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'electricity-learning-v3';
+    const DEFAULT_LESSONS = [
+      {
+        id: 'ohm',
+        title: 'قانون أوم ببساطة',
+        level: 'متوسط',
+        duration: '10 دقيقة',
+        category: 'basics',
+        color: 'violet',
+        description: 'تعرف على العلاقة بين الجهد، التيار، والمقاومة بطريقة سهلة ومباشرة.',
+        goals: ['فهم قانون أوم', 'حساب التيار من الجهد والمقاومة', 'تحديد تأثير المقاومة على الدائرة'],
+        keyPoints: ['الجهد هو فرق الطاقة بين نقطتين', 'التيار هو تدفق الإلكترونات', 'المقاومة تعيق تدفق التيار'],
+        practices: ['إذا كان الجهد 12V والمقاومة 4Ω فكم يكون التيار؟', 'المعادلة: I = V ÷ R', 'كلما زادت المقاومة قلّ التيار عند ثبات الجهد'],
+        quiz: [
+          { q: 'ما صيغة قانون أوم؟', options: ['V = I × R', 'V = R ÷ I', 'I = V + R'], answer: 0 },
+          { q: 'إذا كانت المقاومة 4Ω والجهد 12V، فما التيار؟', options: ['2A', '3A', '4A'], answer: 1 },
+          { q: 'ما الذي يحدث للتيار إذا زادت المقاومة في دائرة ثابتة الجهد؟', options: ['يزداد', 'يقل', 'يظل نفسه'], answer: 1 }
+        ]
+      },
+      {
+        id: 'meter',
+        title: 'استخدام جهاز المليمتر',
+        level: 'تطبيقات عملية',
+        duration: '20 دقيقة',
+        category: 'practice',
+        color: 'emerald',
+        description: 'تعلم كيفية استخدام المليمتر في القياس الآمن والدقيق.',
+        goals: ['التعرف على أجزاء المليمتر', 'اختيار الوضع الصحيح', 'قراءة القيم بدقة'],
+        keyPoints: ['اختر وضع القياس الصحيح', 'تأكد من قطبية الأقطاب', 'ابدأ من أعلى المدى ثم انزل'],
+        practices: ['استخدم وضع الجهد المستمر', 'تحقق من الموضع الصحيح قبل القياس', 'لا تلمس الأقطاب أثناء التشغيل'],
+        quiz: [
+          { q: 'ما نوع القياس عند قياس الجهد في دائرة DC؟', options: ['AC', 'DC', 'RF'], answer: 1 },
+          { q: 'أين يضع المستخدم القطب الأحمر في المليمتر؟', options: ['على الطرف الموجب', 'على الطرف السالب', 'على أي نقطة'], answer: 0 },
+          { q: 'ما الأفضل عند قياس قيمة غير معروفة؟', options: ['البدء من أكبر مقياس', 'البدء من أصغر مقياس', 'عدم القياس'], answer: 0 }
+        ]
+      },
+      {
+        id: 'breaker',
+        title: 'القواطع والحماية المنزلية',
+        level: 'السلامة',
+        duration: '15 دقيقة',
+        category: 'safety',
+        color: 'rose',
+        description: 'تعرف على القواطع وأهمية الحماية في المنزل ومنع الأعطال.',
+        goals: ['فهم دور القواطع', 'تحديد أنواع الحماية', 'تطبيق قواعد السلامة'],
+        keyPoints: ['القاطع الحراري يحمي من زيادة الحرارة', 'القاطع المغناطيسي يحمي من تيار مرتفع', 'تجنب تجاوز قدرة الدائرة'],
+        practices: ['لا تضع حملًا يحمله القاطع', 'افصل الطاقة قبل الصيانة', 'اقرأ الملصق الخاص بكل جهاز'],
+        quiz: [
+          { q: 'ما هدف القاطع الكهربائي؟', options: ['تخزين الكهرباء', 'حماية الدائرة من الأعطال', 'إضاءة المكان'], answer: 1 },
+          { q: 'ما الذي يحدث عند الحمل الزائد؟', options: ['يزداد الجهد', 'يعمل القاطع', 'يفتح المفتاح دائمًا'], answer: 1 },
+          { q: 'ماذا يجب فعله قبل الصيانة الكهربائية؟', options: ['إيقاف الطاقة', 'تنزيل المليمتر', 'الاستمرار'], answer: 0 }
+        ]
+      }
+    ];
+
+    const LESSONS_URL = 'https://raw.githubusercontent.com/yossuf174-creator/taqeem-abuamr/main/lessons.json';
+
+    const lessonList = document.getElementById('lesson-list');
+    const activePanel = document.getElementById('active-lesson-panel');
+    const completedCountEl = document.getElementById('completed-count');
+    const progressPercentEl = document.getElementById('progress-percent');
+    const totalLessonsEl = document.getElementById('total-lessons');
+    const resumeBtn = document.getElementById('resume-btn');
+    const quickStartBtn = document.getElementById('quick-start');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const adminPanel = document.getElementById('admin-panel');
+    const modal = document.getElementById('lesson-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalLevel = document.getElementById('modal-level');
+    const modalDescription = document.getElementById('modal-description');
+    const goalList = document.getElementById('goal-list');
+    const keyList = document.getElementById('key-list');
+    const practiceList = document.getElementById('practice-list');
+    const quizBox = document.getElementById('quiz-box');
+    const quizScoreBadge = document.getElementById('quiz-score-badge');
+
+    let currentLessonId = '';
+    let selectedQuizState = {};
+
+    function getState() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+          completed: [],
+          lastOpened: DEFAULT_LESSONS[0].id,
+          scores: {},
+          lessons: DEFAULT_LESSONS
+        };
+      } catch (error) {
+        return {
+          completed: [],
+          lastOpened: DEFAULT_LESSONS[0].id,
+          scores: {},
+          lessons: DEFAULT_LESSONS
+        };
+      }
+    }
+
+    function saveState(state) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      updateSummary();
+    }
+
+    function ensureState() {
+      const state = getState();
+      if (!state.lessons || !Array.isArray(state.lessons) || state.lessons.length === 0) {
+        state.lessons = DEFAULT_LESSONS;
+      }
+      saveState(state);
+      return state;
+    }
+
+    function setLessons(list) {
+      const state = getState();
+      state.lessons = list;
+      if (!state.lastOpened && list.length) state.lastOpened = list[0].id;
+      if (!state.completed) state.completed = [];
+      if (!state.scores) state.scores = {};
+      saveState(state);
+      renderLessons();
+      renderActiveLessonPanel(state.lastOpened || list[0].id);
+    }
+
+    function updateSummary() {
+      const state = getState();
+      const total = state.lessons?.length || 0;
+      const completed = state.completed?.length || 0;
+      completedCountEl.textContent = String(completed).padStart(2, '0');
+      progressPercentEl.textContent = total ? Math.round((completed / total) * 100) + '%' : '0%';
+      totalLessonsEl.textContent = String(total).padStart(2, '0');
+
+      const lastLesson = state.lessons.find(l => l.id === state.lastOpened) || state.lessons[0];
+      if (lastLesson) {
+        resumeBtn.textContent = 'استئناف: ' + lastLesson.title;
+      }
+    }
+
+    function normalizeLesson(raw) {
+      return {
+        id: String(raw.id || raw.title || Math.random().toString(16).slice(2)),
+        title: raw.title || 'درس جديد',
+        level: raw.level || 'متوسط',
+        duration: raw.duration || '10 دقيقة',
+        category: raw.category || 'basics',
+        color: raw.color || 'violet',
+        description: raw.description || 'وصف الدرس',
+        goals: Array.isArray(raw.goals) ? raw.goals : String(raw.goals || '').split(/\n|,/).map(s => s.trim()).filter(Boolean),
+        keyPoints: Array.isArray(raw.keyPoints) ? raw.keyPoints : String(raw.keyPoints || '').split(/\n|,/).map(s => s.trim()).filter(Boolean),
+        practices: Array.isArray(raw.practices) ? raw.practices : String(raw.practices || '').split(/\n|,/).map(s => s.trim()).filter(Boolean),
+        quiz: Array.isArray(raw.quiz) ? raw.quiz : []
+      };
+    }
+
+    function sanitizeLessons(list) {
+      return (list || []).map(normalizeLesson);
+    }
+
+    function renderList(items, el) {
+      el.innerHTML = '';
+      if (!items || items.length === 0) {
+        el.innerHTML = '<li class="text-sm text-slate-500">لا يوجد محتوى</li>';
+        return;
+      }
+      items.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item;
+        el.appendChild(li);
+      });
+    }
+
+    function renderLessonCard(item) {
+      const state = getState();
+      const isComplete = state.completed.includes(item.id);
+      const isCurrent = item.id === (state.lastOpened || item.id);
+      const score = state.scores?.[item.id];
+      const progress = score ? Math.round((score.correct / score.total) * 100) : (item.id === 'ohm' ? 66 : item.id === 'meter' ? 33 : 0);
+
+      const article = document.createElement('article');
+      article.className = 'lesson-card ' + (isCurrent ? 'active' : '');
+      article.dataset.id = item.id;
+      article.setAttribute('tabindex', '0');
+      article.setAttribute('role', 'button');
+      article.setAttribute('aria-pressed', isComplete ? 'true' : 'false');
+
+      const gradient = item.color === 'violet'
+        ? 'linear-gradient(90deg, rgba(167,139,250,0.18), rgba(99,102,241,0.12))'
+        : item.color === 'emerald'
+        ? 'linear-gradient(90deg, rgba(110,231,183,0.20), rgba(16,185,129,0.12))'
+        : 'linear-gradient(90deg, rgba(253,164,175,0.18), rgba(244,114,182,0.12))';
+
+      article.innerHTML = `
+        <div class="header-bar" style="background:${gradient};"></div>
+        <div class="relative z-10 p-4">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-xl bg-white shadow-md flex items-center justify-center text-xl font-extrabold ${item.color === 'violet' ? 'text-violet-600' : item.color === 'emerald' ? 'text-emerald-600' : 'text-rose-600'}">
+                ${item.color === 'violet' ? 'Ω' : item.color === 'emerald' ? 'A' : '!'}
+              </div>
+              <div>
+                <p class="text-[11px] font-bold ${item.color === 'violet' ? 'text-violet-600' : item.color === 'emerald' ? 'text-emerald-600' : 'text-rose-600'}">${item.level} • ${item.duration}</p>
+                <h2 class="text-base font-extrabold text-slate-800">${item.title}</h2>
+              </div>
+            </div>
+            <div class="progress-ring" style="--progress:${(progress / 100) * 360}deg;">
+              <span>${progress}%</span>
+            </div>
+          </div>
+
+          <div class="mt-4 flex items-center justify-between">
+            <span class="tag-badge ${item.color === 'violet' ? 'bg-violet-100 text-violet-700' : item.color === 'emerald' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}">
+              ${item.level}
+            </span>
+            <span class="text-xs font-semibold text-slate-500">⏱ ${item.duration}</span>
+          </div>
+
+          <p class="mt-3 text-sm text-slate-600">${item.description}</p>
+
+          <div class="mt-4 flex gap-2">
+            <button class="open-lesson flex-1 bg-indigo-600 text-white rounded-xl px-3 py-2.5 font-bold">ابدأ</button>
+            <button class="bookmark-btn rounded-xl bg-slate-100 text-slate-700 px-3 py-2.5 font-bold">${isComplete ? '✓' : '→'}</button>
+          </div>
+        </div>
+      `;
+
+      article.addEventListener('click', (e) => {
+        if (e.target.closest('.open-lesson') || e.target.closest('.bookmark-btn')) return;
+        currentLessonId = item.id;
+        openLessonModal(item.id);
+      });
+
+      article.querySelector('.open-lesson').addEventListener('click', (e) => {
+        e.stopPropagation();
+        currentLessonId = item.id;
+        openLessonModal(item.id);
+      });
+
+      article.querySelector('.bookmark-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        currentLessonId = item.id;
+        openLessonModal(item.id);
+      });
+
+      article.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          currentLessonId = item.id;
+          openLessonModal(item.id);
+        }
+      });
+
+      return article;
+    }
+
+    function renderLessons() {
+      const state = getState();
+      lessonList.innerHTML = '';
+      state.lessons.forEach(item => {
+        lessonList.appendChild(renderLessonCard(item));
+      });
+    }
+
+    function renderActiveLessonPanel(lessonId) {
+      const state = getState();
+      const lesson = (state.lessons || []).find(item => item.id === lessonId) || state.lessons[0];
+      if (!lesson) return;
+
+      const score = state.scores?.[lesson.id];
+      const done = state.completed.includes(lesson.id);
+
+      activePanel.innerHTML = `
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <p class="text-xs text-slate-500">الدرس الحالي</p>
+            <h3 class="text-lg font-extrabold text-slate-800">${lesson.title}</h3>
+          </div>
+          <span class="tag-badge ${lesson.color === 'violet' ? 'bg-violet-100 text-violet-700' : lesson.color === 'emerald' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}">${lesson.level}</span>
+        </div>
+
+        <div class="mt-4 space-y-4">
+          <div class="bg-slate-50 border border-slate-100 rounded-xl p-3">
+            <p class="text-sm text-slate-700 leading-8">${lesson.description}</p>
+          </div>
+
+          <div class="grid gap-3 sm:grid-cols-3">
+            <div class="bg-violet-50 rounded-xl p-3">
+              <h4 class="text-sm font-extrabold text-violet-800">الأهداف</h4>
+              <ul class="list-disc pr-5 mt-2 text-sm text-slate-700 space-y-1">
+                ${(lesson.goals || []).map(item => `<li>${item}</li>`).join('')}
+              </ul>
+            </div>
+            <div class="bg-emerald-50 rounded-xl p-3">
+              <h4 class="text-sm font-extrabold text-emerald-800">المفاهيم</h4>
+              <ul class="list-disc pr-5 mt-2 text-sm text-slate-700 space-y-1">
+                ${(lesson.keyPoints || []).map(item => `<li>${item}</li>`).join('')}
+              </ul>
+            </div>
+            <div class="bg-amber-50 rounded-xl p-3">
+              <h4 class="text-sm font-extrabold text-amber-800">تمارين</h4>
+              <ul class="list-disc pr-5 mt-2 text-sm text-slate-700 space-y-1">
+                ${(lesson.practices || []).map(item => `<li>${item}</li>`).join('')}
+              </ul>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-3">
+            <div class="text-sm text-slate-600">${done ? 'تم إنهاء هذا الدرس' : 'أكمل هذا الدرس لتفعيل إنجازك'}</div>
+            <button class="start-lesson-btn bg-indigo-600 text-white px-4 py-2 rounded-xl" data-id="${lesson.id}">بدء الدرس</button>
+          </div>
+
+          ${score ? `
+            <div class="rounded-xl border border-indigo-100 bg-indigo-50 p-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-indigo-700">نتيجة الاختبار</span>
+                <span class="text-sm font-extrabold text-indigo-700">${score.correct}/${score.total}</span>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+
+      const startBtn = activePanel.querySelector('.start-lesson-btn');
+      startBtn.addEventListener('click', () => {
+        currentLessonId = lesson.id;
+        openLessonModal(lesson.id);
+      });
+
+      activePanel.classList.remove('hidden');
+    }
+
+    function renderQuiz(lessonId) {
+      const state = getState();
+      const lesson = state.lessons.find(item => item.id === lessonId) || state.lessons[0];
+      const score = state.scores?.[lesson.id];
+
+      quizBox.innerHTML = '';
+
+      if (!lesson.quiz || lesson.quiz.length === 0) {
+        quizBox.innerHTML = '<p class="text-sm text-slate-500">لا يوجد اختبار متاح لهذا الدرس.</p>';
+        return;
+      }
+
+      const quizState = selectedQuizState[lesson.id] || {
+        index: 0,
+        selected: null,
+        answered: false,
+        score: 0,
+        total: lesson.quiz.length
+      };
+
+      selectedQuizState[lesson.id] = quizState;
+
+      const currentQuestion = lesson.quiz[quizState.index];
+      if (!currentQuestion) {
+        quizBox.innerHTML = '<p class="text-sm text-slate-500">تم إنهاء الاختبار.</p>';
+        return;
+      }
+
+      const options = currentQuestion.options.map((opt, idx) => {
+        const isCorrect = idx === currentQuestion.answer;
+        const isSelected = quizState.selected === idx;
+
+        let className = 'quiz-option';
+        if (quizState.answered) {
+          if (isCorrect) className += ' correct';
+          else if (isSelected && !isCorrect) className += ' wrong';
+        } else if (isSelected) {
+          className += ' selected';
+        }
+
+        return `
+          <button class="${className}" data-index="${idx}" type="button">
+            ${opt}
+          </button>
+        `;
+      }).join('');
+
+      quizBox.innerHTML = `
+        <p class="text-sm text-slate-500">السؤال ${quizState.index + 1} من ${lesson.quiz.length}</p>
+        <h5 class="text-base font-bold text-slate-800 mt-2">${currentQuestion.q}</h5>
+        <div class="mt-3">${options}</div>
+
+        <div class="mt-4 flex items-center justify-between gap-2">
+          <button class="next-btn bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold ${quizState.answered ? '' : 'opacity-50'}" ${quizState.answered ? '' : 'disabled'}>التالي</button>
+          <span class="text-xs text-slate-500">${quizState.answered ? 'تم الإجابة' : 'اختر الإجابة'}</span>
+        </div>
+      `;
+
+      const optionButtons = quizBox.querySelectorAll('.quiz-option');
+      optionButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (quizState.answered) return;
+          const val = Number(btn.dataset.index);
+          quizState.selected = val;
+          quizState.answered = true;
+
+          if (val === currentQuestion.answer) {
+            quizState.score += 1;
+          }
+
+          const freshState = getState();
+          freshState.scores = freshState.scores || {};
+          freshState.scores[lesson.id] = {
+            correct: quizState.score,
+            total: lesson.quiz.length
+          };
+          saveState(freshState);
+
+          quizScoreBadge.textContent = `${quizState.score}/${lesson.quiz.length}`;
+          renderQuiz(lessonId);
+        });
+      });
+
+      const nextBtn = quizBox.querySelector('.next-btn');
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          if (!quizState.answered) return;
+          const nextIndex = quizState.index + 1;
+          if (nextIndex < lesson.quiz.length) {
+            quizState.index = nextIndex;
+            quizState.selected = null;
+            quizState.answered = false;
+            renderQuiz(lessonId);
+          } else {
+            const freshState = getState();
+            freshState.scores = freshState.scores || {};
+            freshState.scores[lesson.id] = {
+              correct: quizState.score,
+              total: lesson.quiz.length
+            };
+            saveState(freshState);
+            quizBox.innerHTML = `
+              <div class="rounded-xl bg-emerald-50 p-3">
+                <h5 class="text-base font-extrabold text-emerald-800">اكتملت الاختبارات</h5>
+                <p class="text-sm text-slate-700 mt-2">نتيجتك: ${quizState.score} من ${lesson.quiz.length}</p>
+              </div>
+            `;
+          }
+        });
+      }
+
+      if (score) {
+        quizScoreBadge.textContent = `${score.correct}/${score.total}`;
+      } else {
+        quizScoreBadge.textContent = `0/${lesson.quiz.length}`;
+      }
+    }
+
+    function openLessonModal(lessonId) {
+      const state = getState();
+      const lesson = state.lessons.find(item => item.id === lessonId) || state.lessons[0];
+      if (!lesson) return;
+
+      currentLessonId = lesson.id;
+      const newState = getState();
+      newState.lastOpened = lesson.id;
+      saveState(newState);
+
+      modalTitle.textContent = lesson.title;
+      modalLevel.textContent = `${lesson.level} • ${lesson.duration}`;
+      modalDescription.textContent = lesson.description;
+      renderList(lesson.goals || [], goalList);
+      renderList(lesson.keyPoints || [], keyList);
+      renderList(lesson.practices || [], practiceList);
+
+      renderQuiz(lesson.id);
+
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      renderLessons();
+      renderActiveLessonPanel(lesson.id);
+    }
+
+    function closeLessonModal() {
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    function downloadJSON(filename, data) {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function populateForm(lesson) {
+      document.getElementById('lesson-id').value = lesson.id || '';
+      document.getElementById('lesson-title').value = lesson.title || '';
+      document.getElementById('lesson-level').value = lesson.level || '';
+      document.getElementById('lesson-duration').value = lesson.duration || '';
+      document.getElementById('lesson-category').value = lesson.category || 'basics';
+      document.getElementById('lesson-description').value = lesson.description || '';
+      document.getElementById('lesson-goals').value = (lesson.goals || []).join('\n');
+      document.getElementById('lesson-keypoints').value = (lesson.keyPoints || []).join('\n');
+      document.getElementById('lesson-practice').value = (lesson.practices || []).join('\n');
+    }
+
+    function clearForm() {
+      document.getElementById('lesson-form').reset();
+      document.getElementById('lesson-id').value = '';
+      document.getElementById('lesson-category').value = 'basics';
+    }
+
+    function getFormData() {
+      const id = document.getElementById('lesson-id').value || slugify(document.getElementById('lesson-title').value || 'new-lesson');
+      return {
+        id,
+        title: document.getElementById('lesson-title').value.trim(),
+        level: document.getElementById('lesson-level').value.trim(),
+        duration: document.getElementById('lesson-duration').value.trim(),
+        category: document.getElementById('lesson-category').value,
+        color: 'violet',
+        description: document.getElementById('lesson-description').value.trim(),
+        goals: (document.getElementById('lesson-goals').value || '').split('\n').map(s => s.trim()).filter(Boolean),
+        keyPoints: (document.getElementById('lesson-keypoints').value || '').split('\n').map(s => s.trim()).filter(Boolean),
+        practices: (document.getElementById('lesson-practice').value || '').split('\n').map(s => s.trim()).filter(Boolean),
+        quiz: []
+      };
+    }
+
+    function slugify(text) {
+      return (text || '')
+        .toLowerCase()
+        .trim()
+        .replace(/[^\u0621-\u064A0-9a-z\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
+    }
+
+    function saveLessonFromForm() {
+      const state = getState();
+      const data = getFormData();
+      if (!data.title) {
+        alert('يرجى إدخال عنوان الدرس');
+        return;
+      }
+
+      const index = state.lessons.findIndex(l => l.id === data.id);
+      if (index >= 0) {
+        state.lessons[index] = { ...state.lessons[index], ...data };
+      } else {
+        state.lessons.push(data);
+      }
+
+      saveState(state);
+      renderLessons();
+      renderActiveLessonPanel(state.lastOpened || data.id);
+      closeAdmin();
+    }
+
+    function deleteCurrentLesson() {
+      const state = getState();
+      const id = document.getElementById('lesson-id').value;
+      if (!id) return;
+
+      state.lessons = state.lessons.filter(l => l.id !== id);
+      if (state.lastOpened === id) state.lastOpened = state.lessons[0]?.id || '';
+      saveState(state);
+      renderLessons();
+      if (state.lessons.length) renderActiveLessonPanel(state.lastOpened || state.lessons[0].id);
+      clearForm();
+      closeAdmin();
+    }
+
+    function exportLessons() {
+      const state = getState();
+      downloadJSON('lessons.json', state.lessons);
+    }
+
+    function loadLessonsFromRemote() {
+      fetch(LESSONS_URL, { cache: 'no-store' })
+        .then(async res => {
+          if (!res.ok) throw new Error('Network error');
+          const json = await res.json();
+          const list = sanitizeLessons(json);
+          if (!list.length) throw new Error('No lessons');
+          setLessons(list);
+        })
+        .catch(() => {
+          const state = getState();
+          if (!state.lessons?.length) {
+            state.lessons = DEFAULT_LESSONS;
+            saveState(state);
+          }
+          renderLessons();
+          renderActiveLessonPanel(state.lastOpened || state.lessons[0].id);
+        });
+    }
+
+    function closeAdmin() {
+      adminPanel.classList.remove('open');
+    }
+
+    document.getElementById('close-modal').addEventListener('click', closeLessonModal);
+    document.getElementById('start-lesson').addEventListener('click', () => {
+      const state = getState();
+      state.lastOpened = currentLessonId;
+      saveState(state);
+      closeLessonModal();
+    });
+
+    document.getElementById('mark-complete').addEventListener('click', () => {
+      const state = getState();
+      if (!state.completed.includes(currentLessonId)) {
+        state.completed.push(currentLessonId);
+      }
+      saveState(state);
+      renderLessons();
+      renderActiveLessonPanel(currentLessonId);
+      closeLessonModal();
+    });
+
+    document.getElementById('toggle-admin').addEventListener('click', () => {
+      adminPanel.classList.toggle('open');
+    });
+
+    document.getElementById('close-admin').addEventListener('click', () => adminPanel.classList.remove('open'));
+
+    document.getElementById('save-lesson').addEventListener('click', saveLessonFromForm);
+    document.getElementById('new-lesson').addEventListener('click', () => {
+      clearForm();
+      adminPanel.classList.add('open');
+    });
+    document.getElementById('delete-lesson').addEventListener('click', deleteCurrentLesson);
+    document.getElementById('export-json').addEventListener('click', exportLessons);
+    document.getElementById('refresh-remote').addEventListener('click', loadLessonsFromRemote);
+
+    resumeBtn.addEventListener('click', () => {
+      const state = getState();
+      const lesson = state.lessons.find(l => l.id === state.lastOpened) || state.lessons[0];
+      if (lesson) openLessonModal(lesson.id);
+    });
+
+    quickStartBtn.addEventListener('click', () => {
+      const state = getState();
+      const lesson = state.lessons.find(l => l.id === state.lastOpened) || state.lessons[0];
+      if (lesson) openLessonModal(lesson.id);
+    });
+
+    filterButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const filter = button.dataset.filter;
+        filterButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+
+        const state = getState();
+        state.lessons.forEach(lesson => {
+          const card = document.querySelector(`.lesson-card[data-id="${lesson.id}"]`);
+          if (!card) return;
+          const visible = filter === 'all' || lesson.category === filter;
+          card.classList.toggle('hidden', !visible);
+        });
+      });
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeLessonModal();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        closeLessonModal();
+        adminPanel.classList.remove('open');
+      }
+    });
+
+    function initialize() {
+      const state = ensureState();
+      currentLessonId = state.lastOpened || state.lessons[0].id;
+      renderLessons();
+      renderActiveLessonPanel(currentLessonId);
+      updateSummary();
+
+      const lessonCards = document.querySelectorAll('.lesson-card');
+      lessonCards.forEach(card => {
+        card.addEventListener('dblclick', () => {
+          const state = getState();
+          const lesson = state.lessons.find(l => l.id === card.dataset.id);
+          if (lesson) {
+            populateForm(lesson);
+            adminPanel.classList.add('open');
+          }
+        });
+      });
+    }
+
+    initialize();
+    loadLessonsFromRemote();
+    setInterval(loadLessonsFromRemote, 60000);
+  </script>
+</body>
+</html>
